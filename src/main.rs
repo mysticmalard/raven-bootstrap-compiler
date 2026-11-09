@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let prog = preprocessor::collector::Collector::new(source_file)?;
     println!("{}\n", prog.get_body());
 
-    let tokens = Lexer::new(&prog);
+    let tokens = Lexer::new(prog.get_body());
     for token in tokens {
         println!("{:?}", token);
     }

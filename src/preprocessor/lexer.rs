@@ -2,8 +2,6 @@ use itertools::{PutBackN, put_back_n};
 use logos::Logos;
 use token_macros::define_tokens;
 
-use crate::preprocessor::collector::Collector;
-
 define_tokens! {
     AND, OR, NOT,
     AS, IN,
@@ -55,8 +53,8 @@ pub struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
-    pub fn new(src: &'src Collector) -> Self {
-        Self { tokens: put_back_n(Token::lexer(src.get_body()) ) }
+    pub fn new(src: &'src str) -> Self {
+        Self { tokens: put_back_n(Token::lexer(src) ) }
     }
 }
 
