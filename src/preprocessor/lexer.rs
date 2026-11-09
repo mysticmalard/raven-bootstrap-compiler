@@ -1,4 +1,4 @@
-use itertools::{PutBackN, put_back_n};
+use itertools::{PeekingNext, PutBackN, put_back_n};
 use logos::Logos;
 use token_macros::define_tokens;
 
@@ -50,11 +50,36 @@ pub const CLOSE_BRACKETS: &'static [Token] = &[Token::RANGLE, Token::RPAREN, Tok
 
 pub struct Lexer<'src> {
     tokens: PutBackN<logos::Lexer<'src, Token<'src>>>,
+    index: usize
 }
 
 impl<'src> Lexer<'src> {
     pub fn new(src: &'src str) -> Self {
-        Self { tokens: put_back_n(Token::lexer(src) ) }
+        Self { tokens: put_back_n(Token::lexer(src) ), index: 0 }
+    }
+}
+
+impl<'src> Lexer<'src> {
+    pub fn peeking_next(&mut self, accept: impl FnOnce(&Token<'src>) -> bool) -> Option<Token<'src>> {
+        match self.tokens.next()? {
+            Ok(token) => accept(&token).then_some(token).or_else(|| { self.tokens.put_back(Ok(token)); None }),
+            _ => unreachable!()
+        }
+    }
+
+    pub fn forgive(&mut self, token: Token<'src>) {
+        self.tokens.put_back(Ok(token));
+        self.index -= 1;
+    }
+
+    pub fn peek(&mut self) -> Option<Token<'src>> {
+        let token = self.next()?;
+        self.forgive(token);
+        Some(token)
+    }
+
+    pub fn get_index(&self) -> usize {
+        self.index - 1
     }
 }
 
@@ -63,7 +88,7 @@ impl<'src> Iterator for Lexer<'src> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.next() {
-            Some(Ok(token)) => Some(token),
+            Some(Ok(token)) => { self.index += 1; Some(token) },
             Some(Err(())) | None => None
         }
     }
