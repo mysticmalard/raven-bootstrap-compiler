@@ -22,5 +22,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", token);
     }
 
+    let parser = preprocessor::parser::Parser::new(prog.get_body());
+    for res in parser {
+        println!("{:?}", res);
+    }
+
     Ok(())
 }
