@@ -49,11 +49,22 @@ pub const OPEN_BRACKETS: &'static [Token] = &[Token::LANGLE, Token::LPAREN, Toke
 pub const CLOSE_BRACKETS: &'static [Token] = &[Token::RANGLE, Token::RPAREN, Token::RBRACE, Token::RBRACKET];
 
 pub struct Lexer<'src> {
-    lexer: PutBackN<logos::Lexer<'src, Token<'src>>>,
+    tokens: PutBackN<logos::Lexer<'src, Token<'src>>>,
 }
 
 impl<'src> Lexer<'src> {
     pub fn new(src: &'src str) -> Self {
-        Self { lexer: put_back_n(Token::lexer(src) ) }
+        Self { tokens: put_back_n(Token::lexer(src) ) }
+    }
+}
+
+impl<'src> Iterator for Lexer<'src> {
+    type Item = Token<'src>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.tokens.next() {
+            Some(Ok(token)) => Some(token),
+            Some(Err(())) | None => None
+        }
     }
 }
