@@ -51,6 +51,10 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn next_token(&mut self) -> PR<'src, Token<'src>> {
+        self.lexer.next().ok_or_else(|| self.emit_end_of_file())
+    }
+
     fn peek_token(&mut self) -> PR<'src, Token<'src>> {
         self.lexer.peek().ok_or_else(|| self.emit_end_of_file())
     }
