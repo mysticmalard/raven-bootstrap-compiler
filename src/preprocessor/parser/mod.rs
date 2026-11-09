@@ -29,8 +29,24 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn emit_error(&self, kind: ParseErrorKind<'src>, offender: Option<Token<'src>>) -> ParseError<'src> {
+        ParseError(kind, offender, self.lexer.get_index())
+    }
+
     fn emit_end_of_file(&self) -> ParseError<'src> {
-        ParseError(ParseErrorKind::ENDOFFILE, None, self.lexer.get_index())
+        self.emit_error(ParseErrorKind::ENDOFFILE, None)
+    }
+
+    fn expected_ident_error(&self, token: Token<'src>) -> ParseError<'src> {
+        self.emit_error(ParseErrorKind::EXPECTEDIDENT, Some(token))
+    }
+
+    fn expected_token_error(&self, expectation: Token<'src>, token: Token<'src>) -> ParseError<'src> {
+        self.emit_error(ParseErrorKind::ExpectedToken(expectation), Some(token))
+    }
+
+    fn expected_tokens_error(&self, acceptable: &[Token<'src>], token: Token<'src>) -> ParseError<'src> {
+        self.emit_error(ParseErrorKind::ExpectedMulti(acceptable.to_vec()), Some(token))
     }
 }
 
