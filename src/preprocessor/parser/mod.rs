@@ -6,7 +6,8 @@ use ast::*;
 #[derive(Debug, Clone)]
 enum ParseErrorKind<'src> {
     ENDOFFILE,
-    ExpectedIdent(Token<'src>),
+    EXPECTEDIDENT,
+    ExpectedToken(Token<'src>),
     ExpectedMulti(Vec<Token<'src>>)
 }
 
