@@ -1,5 +1,8 @@
 use crate::preprocessor::lexer::{Lexer, Token};
 
+pub mod ast;
+use ast::*;
+
 #[derive(Debug, Clone)]
 enum ParseError<'src> {
     ENDOFFILE,
