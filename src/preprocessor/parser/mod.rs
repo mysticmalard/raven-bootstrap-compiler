@@ -103,8 +103,25 @@ impl<'src> Parser<'src> {
         todo!()
     }
 
-    fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
+    fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
         todo!()
+    }
+
+    fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
+        todo!()
+    }
+
+    fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
+        let name = self.expect_ident()?;
+
+        self.expect_token(Token::LPAREN)?;
+        let params = self.build_params()?;
+
+        let body = self.expect_tokens_consume(Token::LBRACE, &[Token::SEMI])?
+            .then(|| self.build_code_block())
+            .transpose()?;
+
+        Ok(Stmt::FnDef { ftype, name, params, body })
     }
 
     fn build_stmt(&mut self) -> PR<'src, Stmt<'src>> {
