@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use crate::preprocessor::lexer::Lexer;
+
 mod preprocessor;
 
 
@@ -13,7 +15,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let prog = preprocessor::collector::Collector::new(source_file)?;
-    println!("{}", prog.get_body());
+    println!("{}\n", prog.get_body());
+
+    let tokens = Lexer::new(&prog);
+    for token in tokens {
+        println!("{:?}", token);
+    }
 
     Ok(())
 }
