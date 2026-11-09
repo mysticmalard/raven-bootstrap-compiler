@@ -15,6 +15,7 @@ pub struct CodeBlock<'src>(Vec<Stmt<'src>>, Option<Box<Expr<'src>>>);
 pub enum Stmt<'src> {
     Expr(Expr<'src>),
     FnDef {
+        ftype: Token<'src>,
         name: Token<'src>,
         params: Vec<Param<'src>>,
         body: Option<CodeBlock<'src>>,
