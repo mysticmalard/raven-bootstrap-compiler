@@ -1,3 +1,4 @@
+use itertools::{PutBackN, put_back_n};
 use logos::Logos;
 use token_macros::define_tokens;
 
@@ -42,4 +43,17 @@ define_tokens! {
     Literal(r#"".*?\""#),
     FStringLiteral(r#"f".*?""#),
     Unknown(".")
+}
+
+pub const OPEN_BRACKETS: &'static [Token] = &[Token::LANGLE, Token::LPAREN, Token::LBRACE, Token::LBRACKET];
+pub const CLOSE_BRACKETS: &'static [Token] = &[Token::RANGLE, Token::RPAREN, Token::RBRACE, Token::RBRACKET];
+
+pub struct Lexer<'src> {
+    lexer: PutBackN<logos::Lexer<'src, Token<'src>>>,
+}
+
+impl<'src> Lexer<'src> {
+    pub fn new(src: &'src str) -> Self {
+        Self { lexer: put_back_n(Token::lexer(src) ) }
+    }
 }
