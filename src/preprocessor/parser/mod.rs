@@ -99,10 +99,6 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
-    fn build_root_stmt(&mut self) -> PR<'src, Stmt<'src>> {
-        todo!()
-    }
-
     fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
         todo!()
     }
@@ -122,6 +118,17 @@ impl<'src> Parser<'src> {
             .transpose()?;
 
         Ok(Stmt::FnDef { ftype, name, params, body })
+    }
+
+    fn build_stmt_or_expr(&mut self, closer: Option<Token<'src>>) -> PR<'src, Result<Stmt<'src>, Expr<'src>>> {
+        todo!()
+    }
+
+    fn build_root_stmt(&mut self) -> PR<'src, Stmt<'src>> {
+        Ok(match self.build_stmt_or_expr(None)? {
+            Ok(stmt) => stmt,
+            Err(expr) => { self.expect_token(Token::SEMI)?; Stmt::Expr(expr) }
+        })
     }
 
     fn build_stmt(&mut self) -> PR<'src, Stmt<'src>> {
