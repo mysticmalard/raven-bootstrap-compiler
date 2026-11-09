@@ -65,9 +65,36 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn expect_token(&mut self, expectation: Token<'src>) -> PR<'src, ()> {
+        let token = self.next_token()?;
+        if token == expectation {
+            Ok(())
+        } else {
+            Err( self.expected_token_error(expectation, token) )
+        }
+    }
+
+    fn expect_tokens(&mut self, acceptable: &[Token<'src>]) -> PR<'src, Token<'src>> {
+        let token = self.next_token()?;
+        acceptable.contains(&token).then_some(token).ok_or_else(|| self.expected_tokens_error(acceptable, token))
+    }
+
+    fn expect_ident(&mut self) -> PR<'src, Token<'src>> {
+        let token = self.next_token()?;
+        match token {
+            t @ Token::Ident(_) => Ok(t),
+            t => Err(self.expected_ident_error(t))
+        }
+    }
+
     fn expect_tokens_or_else<'a>(&'a mut self, tokens: &[Token<'src>]) -> PR<'src, Option<Token<'src>>> {
         self.peek_token()?;
         Ok(self.peeking_next_token(|token| tokens.contains(token)))
+    }
+
+    fn expect_tokens_consume(&mut self, expectation: Token<'src>, acceptable: &[Token<'src>]) -> PR<'src, bool> {
+        self.peeking_next_token(|token| *token == expectation)
+            .map_or_else(|| self.expect_tokens(acceptable).map(|_| false), |_| Ok(true))
     }
 }
 
