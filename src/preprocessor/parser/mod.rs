@@ -94,7 +94,17 @@ impl<'src> Parser<'src> {
 
     fn expect_tokens_consume(&mut self, expectation: Token<'src>, acceptable: &[Token<'src>]) -> PR<'src, bool> {
         self.peeking_next_token(|token| *token == expectation)
-            .map_or_else(|| self.expect_tokens(acceptable).map(|_| false), |_| Ok(true))
+            .map_or_else(
+                || {
+                    let token = self.peek_token()?;
+                    if acceptable.contains(&token) {
+                        Ok(false)
+                    } else {
+                        Err(self.expected_tokens_error(&[&[expectation], acceptable].concat(), token))
+                    }
+                },
+                |_| Ok(true)
+            )
     }
 }
 
