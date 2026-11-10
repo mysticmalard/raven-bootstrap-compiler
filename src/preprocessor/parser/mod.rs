@@ -106,6 +106,18 @@ impl<'src> Parser<'src> {
                 |_| Ok(true)
             )
     }
+
+    fn check_for_tokens(&mut self, tokens: &[Token<'src>]) -> PR<'src, bool> {
+        Ok(tokens.contains(&self.peek_token()?))
+    }
+
+    fn continue_list(&mut self, delimiter: Token<'src>, closer: Token<'src>) -> PR<'src, bool> {
+        match self.next_token()? {
+            token if token == delimiter => Ok(!self.expect_tokens_consume(closer, &[])?),
+            token if token == closer => Ok(false),
+            token => Err(self.expected_tokens_error(&[delimiter, closer], token))
+        }
+    }
 }
 
 impl<'src> Parser<'src> {
