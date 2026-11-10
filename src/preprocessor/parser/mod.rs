@@ -147,15 +147,57 @@ impl<'src> Parser<'src> {
         }
         Ok(())
     }
+
+    fn build_list<T>(
+        &mut self,
+        delimiter: Token<'src>,
+        closer: Token<'src>,
+        list: &mut Vec<T>,
+        bar: impl Fn(&mut Self) -> PR<'src, T>
+    ) -> PR<'src, ()> {
+        self.parse_list(
+            Some(delimiter),
+            closer,
+            |me| Ok(list.push(bar(me)?))
+        )
+    }
 }
 
 impl<'src> Parser<'src> {
-    fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
+    fn build_param(&mut self) -> PR<'src, Param<'src>> {
         todo!()
     }
 
+    fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
+        let mut params = Vec::new();
+
+        self.build_list(
+            Token::COMMA,
+            Token::RPAREN,
+            &mut params,
+            |me| me.build_param()
+        )?;
+
+        Ok(params)
+    }
+
     fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
-        todo!()
+        let mut stmts = Vec::new();
+        let mut expr = None;
+
+        self.parse_list(
+            None,
+            Token::RBRACE,
+            |me| {
+                match me.build_stmt_or_expr(Some(Token::RBRACE))? {
+                    Ok(stmt) => stmts.push(stmt),
+                    Err(exp) => { expr = Some(Box::new(exp)); }
+                }
+                Ok(())
+            }
+        )?;
+
+        Ok( CodeBlock(stmts, expr) )
     }
 
     fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
