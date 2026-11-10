@@ -244,9 +244,8 @@ impl<'src> Iterator for Parser<'src> {
     type Item = PR<'src, Stmt<'src>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.errored {
+        if !self.errored && self.peek_token().is_ok() {
             match self.build_stmt() {
-                Err(ParseError(ParseErrorKind::ENDOFFILE, _, _)) => { self.errored = true; None },
                 Err(e) => { self.errored = true; Some(Err(e)) }
                 Ok(stmt) => Some(Ok(stmt)),
             }
