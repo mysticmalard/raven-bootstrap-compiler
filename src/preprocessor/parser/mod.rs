@@ -118,6 +118,35 @@ impl<'src> Parser<'src> {
             token => Err(self.expected_tokens_error(&[delimiter, closer], token))
         }
     }
+
+    fn parse_list(
+        &mut self,
+        delimiter: Option<Token<'src>>,
+        closer: Token<'src>,
+        mut foo: impl FnMut(&mut Self) -> PR<'src, ()>
+    ) -> PR<'src, ()> {
+        let cont_cond = delimiter.map_or_else(
+            || Box::new(
+                |me: &mut Self| me.expect_tokens_consume(closer, &[]))
+                    as Box<dyn Fn(&mut Self) -> PR<'src, bool>>,
+            |token: Token<'src>| {
+                Box::new(
+                    move |me: &mut Self| me.continue_list(token, closer)
+                ) as Box<dyn Fn(&mut Self) -> PR<'src, bool>>
+            }
+        );
+
+        if !self.expect_tokens_consume(closer, &[])? {
+            loop {
+                foo(self)?;
+
+                if !cont_cond(self)? {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'src> Parser<'src> {
