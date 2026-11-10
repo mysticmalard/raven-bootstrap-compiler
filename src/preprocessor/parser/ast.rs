@@ -9,7 +9,7 @@ pub enum Expr<'src> {
 pub struct Param<'src>(Token<'src>, Expr<'src>);
 
 #[derive(Debug, Clone)]
-pub struct CodeBlock<'src>(Vec<Stmt<'src>>, Option<Box<Expr<'src>>>);
+pub struct CodeBlock<'src>(pub Vec<Stmt<'src>>, pub Option<Box<Expr<'src>>>);
 
 #[derive(Debug, Clone)]
 pub enum Stmt<'src> {
