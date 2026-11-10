@@ -18,8 +18,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{}\n", prog.get_body());
 
     let tokens = Lexer::new(prog.get_body());
+    let mut index = 0;
     for token in tokens {
-        println!("{:?}", token);
+        println!("{}: {:?}", index, token);
+        index += 1;
     }
 
     let parser = preprocessor::parser::Parser::new(prog.get_body());
