@@ -192,6 +192,87 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    // TODO: Fix
+    fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
+        Ok(match self.next_token()? {
+            token if OPEN_BRACKETS.contains(&token) => {
+                let closer = token.get_closer().unwrap();
+                let expr = self.build_expr(&[Token::COMMA, closer])?;
+                if self.check_for_tokens(&[Token::COMMA])? {
+                    let mut exprs = Vec::from([expr]);
+                    while self.continue_list(Token::COMMA, closer)? {
+                        exprs.push(self.build_expr(&[Token::COMMA, closer])?);
+                    }
+                    Expr::List(token, exprs)
+                } else {
+                    self.expect_token(closer)?;
+                    Expr::Group(token, Box::new(expr))
+                }
+            },
+            Token::FOR => todo!(),
+            Token::MATCH => todo!(),
+            token if CTRL_FLOW_GEN.contains(&token) => todo!(),
+            // token if CTRL_FLOW_GEN.contains(&token) => Expr::Phrase(Box::new(self.build_clause(Some(token))?)),
+            token @
+            ( Token::Ident(_)
+            | Token::Char(_)
+            | Token::Literal(_)
+            | Token::Number(_) ) => Expr::Atom(token),
+            _ => todo!()
+        })
+    }
+
+
+    // TODO: rewrite (maybe)
+    fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
+        // let exp = match self.next_token()? {
+        let exp = match self.expect_tokens(&[ACCESSORS, POSTFIXES, INFIXES].concat())? {
+            token if ACCESSORS.contains(&token) => {
+                Expr::Access(expr, token, self.expect_ident()?)
+            },
+            // token if OPEN_BRACKETS.contains(&token) => {
+            //     Expr::FnCall(expr, token, self.build_call_args(token.get_closer().unwrap())?)
+            // },
+            token if POSTFIXES.contains(&token) || INFIXES.contains(&token) => {
+                Expr::Postfix(expr, token)
+            }
+            _ => unreachable!()
+        };
+
+        Ok(exp)
+    }
+
+    fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
+        let mut expr = match self.expect_tokens_or_else(PREFIXES)? {
+            Some(prefix) if PREFIXES.contains(&prefix) => Expr::Prefix(prefix, Box::new(self.build_expr(closers)?)),
+            None => self.build_expr_leaf()?,
+            _ => unreachable!()
+        };
+
+        self.loop_over(
+            closers,
+            &mut expr,
+            |me, expr| {
+                // let temp = Expr::Atom(Token::SEMI);
+                // * Dummy value
+                *expr = match core::mem::replace(expr, Expr::Atom(Token::SEMI)) {
+                // ? help
+                // *expr = match expr {
+                    Expr::Postfix(exp, t) if INFIXES.contains(&t) => {
+                        Expr::Binary(exp, t, Box::new(me.build_expr(closers)?))
+                    },
+                    exp @ Expr::Group(_, _) => {
+                        Expr::PrefixCall(Box::new(exp), Box::new(me.build_expr(closers)?))
+                    },
+                    exp => me.append_postfix(Box::new(exp))?
+                };
+                Ok(())
+            }
+        )?;
+
+        Ok(expr)
+    }
+
     fn build_param(&mut self) -> PR<'src, Param<'src>> {
         todo!()
     }
@@ -242,7 +323,32 @@ impl<'src> Parser<'src> {
     }
 
     fn build_stmt_or_expr(&mut self, closer: Option<Token<'src>>) -> PR<'src, Result<Stmt<'src>, Expr<'src>>> {
-        todo!()
+        let closers = if let Some(closer) = closer {
+            (&[Token::SEMI, closer]) as &[Token<'src>]
+        } else {
+            (&[Token::SEMI]) as &[Token<'src>]
+        };
+
+        let stmt_or_expr = match self.expect_tokens_or_else(CTRL_FLOW_GEN)? {
+            // Some(flow) if CTRL_FLOW_GEN.contains(&flow) => Ok(Stmt::Expr(Expr::Phrase(Box::new(self.build_clause(closers)?)))),
+            Some(kwd) if CTRL_FLOW_GEN.contains(&kwd) => todo!(),
+            // Some(kwd) if CTRL_FLOW_KWDS.contains(&kwd) => {
+            //     let stmt = Stmt::Ctrl(kwd, self.build_expr(&[Token::SEMI])?);
+            //     self.expect_token(Token::SEMI)?;
+            //     Ok(stmt)
+            // },
+            None => {
+                let expr = self.build_expr(closers)?;
+                if self.expect_tokens_consume(Token::SEMI, &[])? {
+                    Ok(Stmt::Expr(expr))
+                } else {
+                    Err(expr)
+                }
+            },
+            _ => unreachable!()
+        };
+
+        Ok(stmt_or_expr)
     }
 
     fn build_root_stmt(&mut self) -> PR<'src, Stmt<'src>> {
