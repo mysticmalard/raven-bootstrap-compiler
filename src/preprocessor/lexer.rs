@@ -1,4 +1,4 @@
-use itertools::{PeekingNext, PutBackN, put_back_n};
+use itertools::{PutBackN, put_back_n};
 use logos::Logos;
 use token_macros::define_tokens;
 
@@ -47,6 +47,51 @@ define_tokens! {
 
 pub const OPEN_BRACKETS: &'static [Token] = &[Token::LANGLE, Token::LPAREN, Token::LBRACE, Token::LBRACKET];
 pub const CLOSE_BRACKETS: &'static [Token] = &[Token::RANGLE, Token::RPAREN, Token::RBRACE, Token::RBRACKET];
+
+pub const CTRL_FLOW_GEN: &'static [Token] = &[
+    Token::FOR, 
+    Token::MATCH,
+    Token::ATTEMPT, Token::IF, Token::WITH,
+    Token::TRY, Token::WHILE, Token::UNTIL,
+];
+
+pub const CTRL_FLOW_KWDS: &'static [Token] = &[
+    Token::CONTINUE, Token::RETRY,
+    Token::YIELD, Token::RETURN,
+    Token::BREAK,
+
+    Token::USE, Token::LET
+];
+
+pub const ACCESSORS: &'static [Token] = &[
+
+];
+
+pub const PREFIXES: &'static [Token] = &[
+
+];
+
+pub const INFIXES: &'static [Token] = &[
+
+];
+
+pub const POSTFIXES: &'static [Token] = &[
+
+];
+
+impl<'src> Token<'src> {
+    pub fn get_closer(&self) -> Option<Self> {
+        OPEN_BRACKETS.iter()
+            .zip(CLOSE_BRACKETS)
+            .find_map(
+                |(
+                    open,
+                    close
+                )|
+                { (self == open).then_some(*close) }
+            )
+    }
+}
 
 pub struct Lexer<'src> {
     tokens: PutBackN<logos::Lexer<'src, Token<'src>>>,
