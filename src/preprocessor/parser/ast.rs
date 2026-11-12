@@ -1,8 +1,25 @@
 use crate::preprocessor::lexer::Token;
 
 #[derive(Debug, Clone)]
+pub enum Phrase<'src> {
+    For(Expr<'src>, Expr<'src>),
+    Generic(Token<'src>, Expr<'src>),
+    Standalone(Token<'src>),
+    Chain(Box<Self>, Box<Self>),
+    Block(Box<Self>, CodeBlock<'src>)
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr<'src> {
-    Atom(Token<'src>)
+    Atom(Token<'src>),
+    Access(Box<Self>, Token<'src>, Token<'src>),
+    Prefix(Token<'src>, Box<Self>),
+    Postfix(Box<Self>, Token<'src>),
+    Binary(Box<Self>, Token<'src>, Box<Self>),
+    Group(Token<'src>, Box<Self>),
+    PrefixCall(Box<Self>, Box<Self>),
+    List(Token<'src>, Vec<Self>),
+    Phrase(Box<Phrase<'src>>)
 }
 
 #[derive(Debug, Clone)]
