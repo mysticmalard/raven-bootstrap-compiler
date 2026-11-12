@@ -163,6 +163,32 @@ impl<'src> Parser<'src> {
             |me| Ok(list.push(bar(me)?))
         )
     }
+
+    fn loop_over<T>(
+        &mut self,
+        closers: &[Token<'src>],
+        accumulator: &mut T,
+        mut foo: impl FnMut(&mut Self, &mut T) -> PR<'src, ()>
+    ) -> PR<'src, ()> {
+        if !self.check_for_tokens(closers)? {
+            loop {
+                foo(self, accumulator)?;
+                if self.check_for_tokens(closers)? {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    // fn loop_build<T>(
+    //     &mut self,
+    //     closers: &[Token<'src>],
+    //     list: &mut T,
+    //     baz: impl Fn(&mut Self, &mut T) -> PR<'src, T>
+    // ) -> PR<'src, ()> {
+
+    // }
 }
 
 impl<'src> Parser<'src> {
