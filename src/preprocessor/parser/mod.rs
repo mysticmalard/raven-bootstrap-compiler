@@ -136,7 +136,8 @@ impl<'src> Parser<'src> {
             }
         );
 
-        if !self.expect_tokens_consume(closer, &[])? {
+        // if !self.expect_tokens_consume(closer, &[])? {
+        if !self.check_for_tokens(&[closer])? {
             loop {
                 foo(self)?;
 
@@ -145,6 +146,7 @@ impl<'src> Parser<'src> {
                 }
             }
         }
+        self.expect_token(closer)?;
         Ok(())
     }
 
