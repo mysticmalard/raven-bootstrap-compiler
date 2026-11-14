@@ -12,6 +12,7 @@ pub enum Phrase<'src> {
 #[derive(Debug, Clone)]
 pub enum Expr<'src> {
     Atom(Token<'src>),
+    FnCall(Box<Self>, Token<'src>, Vec<Self>),
     Access(Box<Self>, Token<'src>, Token<'src>),
     Prefix(Token<'src>, Box<Self>),
     Postfix(Box<Self>, Token<'src>),
@@ -23,7 +24,7 @@ pub enum Expr<'src> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Param<'src>(Token<'src>, Expr<'src>);
+pub struct Param<'src>(pub Token<'src>, pub Expr<'src>);
 
 #[derive(Debug, Clone)]
 pub struct CodeBlock<'src>(pub Vec<Stmt<'src>>, pub Option<Box<Expr<'src>>>);

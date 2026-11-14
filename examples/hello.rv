@@ -1,4 +1,4 @@
 // implicit args, effects, and return for main
-api main() {
+api main(e,) {
     print("Hello, World!");
 }

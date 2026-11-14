@@ -192,6 +192,19 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn build_call_args(&mut self, closer: Token<'src>) -> PR<'src, Vec<Expr<'src>>> {
+        let mut args = Vec::new();
+
+        self.build_list(
+            Token::COMMA,
+            closer,
+            &mut args,
+            |me| me.build_expr(&[Token::COMMA, closer])
+        )?;
+
+        Ok(args)
+    }
+
     // TODO: Fix
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
         Ok(match self.next_token()? {
@@ -226,13 +239,13 @@ impl<'src> Parser<'src> {
     // TODO: rewrite (maybe)
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
         // let exp = match self.next_token()? {
-        let exp = match self.expect_tokens(&[ACCESSORS, POSTFIXES, INFIXES].concat())? {
+        let exp = match self.expect_tokens(&[ACCESSORS, POSTFIXES, INFIXES, OPEN_BRACKETS].concat())? {
             token if ACCESSORS.contains(&token) => {
                 Expr::Access(expr, token, self.expect_ident()?)
             },
-            // token if OPEN_BRACKETS.contains(&token) => {
-            //     Expr::FnCall(expr, token, self.build_call_args(token.get_closer().unwrap())?)
-            // },
+            token if OPEN_BRACKETS.contains(&token) => {
+                Expr::FnCall(expr, token, self.build_call_args(token.get_closer().unwrap())?)
+            },
             token if POSTFIXES.contains(&token) || INFIXES.contains(&token) => {
                 Expr::Postfix(expr, token)
             }
@@ -274,7 +287,9 @@ impl<'src> Parser<'src> {
     }
 
     fn build_param(&mut self) -> PR<'src, Param<'src>> {
-        todo!()
+        // todo!()
+        let name = self.next_token()?;
+        Ok(Param(name, Expr::Atom(Token::SEMI)))
     }
 
     fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
