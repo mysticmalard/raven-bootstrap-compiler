@@ -153,7 +153,7 @@ impl<'src> Parser<'src> {
 
 impl<'src> Parser<'src> {
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
-        todo!()
+        Ok(Expr::Atom(self.next_token()?))
     }
 
     fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
