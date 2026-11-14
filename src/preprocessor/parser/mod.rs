@@ -164,6 +164,23 @@ impl<'src> Parser<'src> {
         todo!()
     }
 
+    fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
+        let name = self.expect_ident()?;
+
+        self.expect_token(Token::LPAREN)?;
+        let params = self.build_params(Token::RPAREN)?;
+
+        let rtype = self.expect_tokens_consume(Token::BARW, &[Token::LBRACE, Token::SEMI])?
+            .then(|| self.build_expr(&[Token::LBRACE, Token::SEMI]))
+            .transpose()?;
+
+        let body = self.expect_tokens_consume(Token::LBRACE, &[Token::SEMI])?
+            .then(|| self.build_code_block())
+            .transpose()?;
+
+        Ok(Stmt::FnDef { ftype, name, params, body })
+    }
+
     fn build_stmt_or_expr(&mut self, closer: Option<Token<'src>>) -> PR<'src, Result<Stmt<'src>, Expr<'src>>> {
         let closers = if let Some(closer) = closer {
             (&[Token::SEMI, closer]) as &[Token<'src>]
