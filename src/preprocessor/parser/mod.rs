@@ -161,7 +161,9 @@ impl<'src> Parser<'src> {
     }
 
     fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
-        todo!()
+        // TODO
+        self.expect_token(closer)?;
+        Ok(Vec::new())
     }
 
     fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
