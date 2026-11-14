@@ -152,6 +152,14 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
+        todo!()
+    }
+
+    fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
+        todo!()
+    }
+
     fn build_stmt_or_expr(&mut self, closer: Option<Token<'src>>) -> PR<'src, Result<Stmt<'src>, Expr<'src>>> {
         let closers = if let Some(closer) = closer {
             (&[Token::SEMI, closer]) as &[Token<'src>]
