@@ -170,10 +170,6 @@ impl<'src> Parser<'src> {
         self.expect_token(Token::LPAREN)?;
         let params = self.build_params(Token::RPAREN)?;
 
-        let rtype = self.expect_tokens_consume(Token::BARW, &[Token::LBRACE, Token::SEMI])?
-            .then(|| self.build_expr(&[Token::LBRACE, Token::SEMI]))
-            .transpose()?;
-
         let body = self.expect_tokens_consume(Token::LBRACE, &[Token::SEMI])?
             .then(|| self.build_code_block())
             .transpose()?;
