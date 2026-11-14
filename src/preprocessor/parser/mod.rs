@@ -156,7 +156,11 @@ impl<'src> Parser<'src> {
         todo!()
     }
 
-    fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
+    fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
+        todo!()
+    }
+
+    fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
         todo!()
     }
 
