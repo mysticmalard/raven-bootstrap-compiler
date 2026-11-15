@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables, unused_imports)]
+
 use std::error::Error;
 
 use crate::preprocessor::lexer::Lexer;
