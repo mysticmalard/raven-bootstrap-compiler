@@ -232,14 +232,14 @@ impl<'src> Parser<'src> {
 
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
         Ok(match self.expect_tokens(&[
-            OPEN_BRACKETS, INFIXES, ACCESSORS
+            OPEN_BRACKETS, INFIXES, ACCESSORS, POSTFIXES
         ].concat())? {
             bracket if OPEN_BRACKETS.contains(&bracket) => Expr::FnCall(
                 expr,
                 bracket,
                 self.build_call_args(bracket.get_closer().unwrap())?
             ),
-            infix if INFIXES.contains(&infix) => Expr::Postfix(expr, infix),
+            token if [INFIXES, POSTFIXES].concat().contains(&token) => Expr::Postfix(expr, token),
             accessor if ACCESSORS.contains(&accessor) => {
                 let modifier = self.expect_tokens_or_else(ACCESS_MODIFIERS)?;
                 let name = self.expect_ident()?;
