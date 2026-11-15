@@ -1,0 +1,4 @@
+fn foo(a: &mut T, b: u8) {
+    a.bar(b);
+    b.baz(a)
+}
