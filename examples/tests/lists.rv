@@ -1,0 +1,13 @@
+(hello);
+[world];
+<>;
+(good, bye);
+
+{0, 1, 2};
+
+{
+    foo(bar);
+    commit_crimes()
+};
+
+{ crimes };
