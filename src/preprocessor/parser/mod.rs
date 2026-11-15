@@ -178,10 +178,28 @@ impl<'src> Parser<'src> {
         Ok(Expr::Atom(self.next_token()?))
     }
 
-    fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
-        let expr = self.build_expr_leaf()?;
+    fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
+        todo!()
+    }
 
-        Ok(expr)
+    fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
+        let mut expr = Box::new(self.build_expr_leaf()?);
+
+        self.loop_over(
+            |me| Ok(!me.check_for_tokens(closers)?),
+            true,
+            &mut expr,
+            |me, expr| {
+                // let exp = match expr.clone() {
+                **expr = match expr.clone() {
+                    exp => me.append_postfix(exp)?
+                };
+                // **expr = exp;
+                Ok(())
+            }
+        )?;
+
+        Ok(*expr)
     }
 
     fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
