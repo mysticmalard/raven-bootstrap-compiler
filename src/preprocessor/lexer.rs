@@ -81,7 +81,7 @@ pub const INFIXES: &'static [Token] = &[
 ];
 
 pub const POSTFIXES: &'static [Token] = &[
-
+    Token::HOOK
 ];
 
 pub const ACCESS_MODIFIERS: &'static [Token] = &[

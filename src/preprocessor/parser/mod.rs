@@ -232,7 +232,7 @@ impl<'src> Parser<'src> {
 
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
         Ok(match self.expect_tokens(&[
-            OPEN_BRACKETS, INFIXES
+            OPEN_BRACKETS, INFIXES, ACCESSORS
         ].concat())? {
             bracket if OPEN_BRACKETS.contains(&bracket) => Expr::FnCall(
                 expr,
