@@ -91,6 +91,16 @@ impl<'src> Token<'src> {
                 { (self == open).then_some(*close) }
             )
     }
+
+    pub fn is_atom(&self) -> bool {
+        match self {
+            Token::Ident(_)
+            | Token::Char(_)
+            | Token::Literal(_)
+            | Token::Number(_) => true,
+            _ => false
+        }
+    }
 }
 
 pub struct Lexer<'src> {

@@ -7,6 +7,7 @@ use ast::*;
 enum ParseErrorKind<'src> {
     ENDOFFILE,
     EXPECTEDIDENT,
+    EXPECTEDATOM,
     ExpectedToken(Token<'src>),
     ExpectedMulti(Vec<Token<'src>>)
 }
@@ -39,6 +40,10 @@ impl<'src> Parser<'src> {
 
     fn expected_ident_error(&self, token: Token<'src>) -> ParseError<'src> {
         self.emit_error(ParseErrorKind::EXPECTEDIDENT, Some(token))
+    }
+
+    fn expected_atom_error(&self, token: Token<'src>) -> ParseError<'src> {
+        self.emit_error(ParseErrorKind::EXPECTEDATOM, Some(token))
     }
 
     fn expected_token_error(&self, expectation: Token<'src>, token: Token<'src>) -> ParseError<'src> {
@@ -90,6 +95,13 @@ impl<'src> Parser<'src> {
     fn expect_tokens_or_else<'a>(&'a mut self, tokens: &[Token<'src>]) -> PR<'src, Option<Token<'src>>> {
         self.peek_token()?;
         Ok(self.peeking_next_token(|token| tokens.contains(token)))
+    }
+
+    fn expect_atoms_or_else(&mut self, tokens: &[Token<'src>]) -> PR<'src, Option<Token<'src>>> {
+        Ok(match self.expect_tokens_or_else(tokens)? {
+            token @ Some(_) => token,
+            None => self.peeking_next_token(|token| token.is_atom())
+        })
     }
 
     fn expect_tokens_consume(&mut self, expectation: Token<'src>, acceptable: &[Token<'src>]) -> PR<'src, bool> {
@@ -163,7 +175,15 @@ impl<'src> Parser<'src> {
     }
 
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
-        Ok(Expr::Atom(self.next_token()?))
+        Ok(match self.expect_atoms_or_else(&[])? {
+            Some(atom @
+                ( Token::Ident(_)
+                | Token::Char(_)
+                | Token::Literal(_)
+                | Token::Number(_))) => Expr::Atom(atom),
+            None => todo!(),
+            _ => unreachable!()
+        })
     }
 
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
