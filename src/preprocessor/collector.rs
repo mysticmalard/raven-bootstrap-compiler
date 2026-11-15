@@ -1,7 +1,7 @@
-use std::error::Error;
+use std::{error::Error, path::PathBuf};
 
 enum CollectorRoot {
-    Root(String),
+    Root(PathBuf),
 }
 
 pub struct Collector {
@@ -10,7 +10,7 @@ pub struct Collector {
 }
 
 impl Collector {
-    pub fn new(path: String) -> Result<Self, Box<dyn Error>> {
+    pub fn new(path: PathBuf) -> Result<Self, Box<dyn Error>> {
         let body = std::fs::read_to_string(&path)?;
 
         Ok(Self { root: CollectorRoot::Root(path), body })
