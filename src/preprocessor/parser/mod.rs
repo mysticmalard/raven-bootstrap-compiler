@@ -174,13 +174,57 @@ impl<'src> Parser<'src> {
         Ok(args)
     }
 
+    fn build_set(&mut self) -> PR<'src, Expr<'src>> {
+        let closers = &[Token::COMMA, Token::SEMI, Token::RBRACE];
+        let expr = self.build_expr(closers)?;
+
+        let expr = match self.expect_tokens(closers)? {
+            Token::SEMI => {
+                let CodeBlock(mut stmts1, exp) = self.build_code_block()?;
+                let mut stmts2 = Vec::with_capacity(stmts1.capacity() + 1);
+                stmts2.push(Stmt::Expr(expr));
+                stmts2.append(&mut stmts1);
+                Expr::CodeBlock(CodeBlock(stmts2, exp))
+            },
+            Token::RBRACE => Expr::CodeBlock(CodeBlock(Vec::new(), Some(Box::new(expr)))),
+            Token::COMMA => {
+                let mut args = self.build_call_args(Token::RBRACE)?;
+                let mut exprs = Vec::with_capacity(args.capacity() + 1);
+                exprs.push(expr);
+                exprs.append(&mut args);
+                Expr::List(Token::RBRACE, exprs)
+            },
+            _ => unreachable!()
+        };
+
+        Ok(expr)
+    }
+
+    fn build_group_or_list(&mut self) -> PR<'src, Expr<'src>> {
+        let list = self.build_call_args(Token::RPAREN)?;
+
+        Ok(if list.len() == 1 {
+            // * There is some unsafe wizardry that can be done to
+            // * convert the Vec directly into a Box without cloning
+            // * the expression
+            Expr::Group(Token::LPAREN, Box::new(list[0].clone()))
+        } else {
+            Expr::List(Token::LPAREN, list)
+        })
+    }
+
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
-        Ok(match self.expect_atoms_or_else(&[])? {
+        Ok(match self.expect_atoms_or_else(OPEN_BRACKETS)? {
             Some(atom @
                 ( Token::Ident(_)
                 | Token::Char(_)
                 | Token::Literal(_)
                 | Token::Number(_))) => Expr::Atom(atom),
+            Some(bracket @ (Token::LANGLE | Token::LBRACKET)) => {
+                Expr::List(bracket, self.build_call_args(bracket.get_closer().unwrap())?)
+            },
+            Some(Token::LBRACE) => self.build_set()?,
+            Some(Token::LPAREN) => self.build_group_or_list()?,
             None => todo!(),
             _ => unreachable!()
         })

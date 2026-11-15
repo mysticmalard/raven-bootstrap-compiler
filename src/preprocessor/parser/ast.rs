@@ -3,6 +3,9 @@ use crate::preprocessor::lexer::Token;
 #[derive(Debug, Clone)]
 pub enum Expr<'src> {
     Atom(Token<'src>),
+    Group(Token<'src>, Box<Self>),
+    List(Token<'src>, Vec<Self>),
+    CodeBlock(CodeBlock<'src>),
     FnCall(Box<Self>, Token<'src>, Vec<Self>),
 }
 
