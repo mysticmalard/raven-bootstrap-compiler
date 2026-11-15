@@ -231,8 +231,16 @@ impl<'src> Parser<'src> {
     }
 
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
-        Ok(match self.expect_tokens(OPEN_BRACKETS)? {
-            bracket => Expr::FnCall(expr, bracket, self.build_call_args(bracket.get_closer().unwrap())?)
+        Ok(match self.expect_tokens(&[
+            OPEN_BRACKETS, INFIXES
+        ].concat())? {
+            bracket if OPEN_BRACKETS.contains(&bracket) => Expr::FnCall(
+                expr,
+                bracket,
+                self.build_call_args(bracket.get_closer().unwrap())?
+            ),
+            infix if INFIXES.contains(&infix) => Expr::Postfix(expr, infix),
+            _ => unreachable!()
         })
     }
 
@@ -240,7 +248,7 @@ impl<'src> Parser<'src> {
         let mut expr = Box::new(match self.expect_tokens_or_else(PREFIXES)? {
             Some(prefix) => Expr::Prefix(prefix, Box::new(self.build_expr(closers)?)),
             None => self.build_expr_leaf()?,
-            _ => unreachable!()
+            // _ => unreachable!()
         });
 
         self.loop_over(
@@ -249,8 +257,11 @@ impl<'src> Parser<'src> {
             &mut expr,
             |me, expr| {
                 // let exp = match expr.clone() {
-                **expr = match expr.clone() {
-                    exp => me.append_postfix(exp)?
+                **expr = match *expr.clone() {
+                    Expr::Postfix(exp, infix) if INFIXES.contains(&infix) => {
+                        Expr::Binary(exp, infix, Box::new(me.build_expr(closers)?))
+                    },
+                    exp => me.append_postfix(Box::new(exp))?
                 };
                 // **expr = exp;
                 Ok(())

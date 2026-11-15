@@ -74,7 +74,7 @@ pub const PREFIXES: &'static [Token] = &[
 ];
 
 pub const INFIXES: &'static [Token] = &[
-
+    Token::AMP, Token::AMPI
 ];
 
 pub const POSTFIXES: &'static [Token] = &[
