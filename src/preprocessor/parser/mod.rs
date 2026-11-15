@@ -300,10 +300,23 @@ impl<'src> Parser<'src> {
         Ok(CodeBlock(stmts, expr))
     }
 
+    fn build_param(&mut self, closer: Token<'src>) -> PR<'src, Param<'src>> {
+        Ok(Param(self.expect_ident()?, { self.expect_token(Token::COLON)?; self.build_expr(&[Token::COMMA, closer])?}))
+    }
+
     fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
-        // TODO
-        self.expect_token(closer)?;
-        Ok(Vec::new())
+        let mut params = Vec::new();
+
+        self.loop_over(
+            |me| me.continue_list(Token::COMMA, closer),
+            false,
+            &mut params,
+            |me, params| {
+                params.push(me.build_param(closer)?);
+                Ok(())
+            })?;
+        
+        Ok(params)
     }
 
     fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
