@@ -1,0 +1,7 @@
+if condition {
+    happy_path()?;
+} else if other_condition {
+    other_path();
+} else {
+    error_path();
+}
