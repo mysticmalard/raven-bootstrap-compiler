@@ -313,15 +313,17 @@ impl<'src> Parser<'src> {
     fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
         let mut params = Vec::new();
 
-        self.loop_over(
-            |me| me.continue_list(Token::COMMA, closer),
-            false,
-            &mut params,
-            |me, params| {
-                params.push(me.build_param(closer)?);
-                Ok(())
-            })?;
-        
+        if !self.expect_tokens_consume(closer, &[])? {
+            self.loop_over(
+                |me| me.continue_list(Token::COMMA, closer),
+                false,
+                &mut params,
+                |me, params| {
+                    params.push(me.build_param(closer)?);
+                    Ok(())
+                }
+            )?;
+        }
         Ok(params)
     }
 
