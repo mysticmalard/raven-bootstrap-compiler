@@ -69,7 +69,7 @@ pub const CTRL_FLOW_KWDS: &'static [Token] = &[
 ];
 
 pub const ACCESSORS: &'static [Token] = &[
-
+    Token::DOT, Token::RARW, Token::MARW
 ];
 
 pub const PREFIXES: &'static [Token] = &[
