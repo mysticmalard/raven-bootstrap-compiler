@@ -36,7 +36,10 @@ define_tokens! {
     BRACE["{", "}"],
     ANGLE["<", ">"],
 
+    HOOK => "?",
+
     AMP => "&",
+    STAR => "*",
 
     Char(r"'(\\)?.'"),
     Lifetime(r"'[a-zA-Z_][a-zA-Z_0-9]*\s"),
@@ -79,6 +82,10 @@ pub const INFIXES: &'static [Token] = &[
 
 pub const POSTFIXES: &'static [Token] = &[
 
+];
+
+pub const ACCESS_MODIFIERS: &'static [Token] = &[
+    Token::STAR, Token::HOOK
 ];
 
 impl<'src> Token<'src> {

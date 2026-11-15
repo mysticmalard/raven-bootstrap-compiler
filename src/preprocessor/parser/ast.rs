@@ -3,6 +3,12 @@ use crate::preprocessor::lexer::Token;
 #[derive(Debug, Clone)]
 pub enum Expr<'src> {
     Atom(Token<'src>),
+    Access{
+        expr: Box<Self>,
+        accessor: Token<'src>,
+        modifier: Option<Token<'src>>,
+        name: Token<'src>
+    },
     Prefix(Token<'src>, Box<Self>),
     Binary(Box<Self>, Token<'src>, Box<Self>),
     Postfix(Box<Self>, Token<'src>),

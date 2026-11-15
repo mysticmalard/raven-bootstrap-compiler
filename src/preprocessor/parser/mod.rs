@@ -1,4 +1,4 @@
-use crate::preprocessor::lexer::{ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
+use crate::preprocessor::lexer::{ACCESS_MODIFIERS, ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
 
 pub mod ast;
 use ast::*;
@@ -240,6 +240,11 @@ impl<'src> Parser<'src> {
                 self.build_call_args(bracket.get_closer().unwrap())?
             ),
             infix if INFIXES.contains(&infix) => Expr::Postfix(expr, infix),
+            accessor if ACCESSORS.contains(&accessor) => {
+                let modifier = self.expect_tokens_or_else(ACCESS_MODIFIERS)?;
+                let name = self.expect_ident()?;
+                Expr::Access { expr, accessor, modifier, name }
+            }
             _ => unreachable!()
         })
     }
