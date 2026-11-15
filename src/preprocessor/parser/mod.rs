@@ -97,7 +97,7 @@ impl<'src> Parser<'src> {
             .map_or_else(
                 || {
                     let token = self.peek_token()?;
-                    if acceptable.contains(&token) {
+                    if acceptable.contains(&token) || acceptable.is_empty() {
                         Ok(false)
                     } else {
                         Err(self.expected_tokens_error(&[&[expectation], acceptable].concat(), token))
@@ -149,6 +149,28 @@ impl<'src> Parser<'src> {
     //     self.expect_token(closer)?;
     //     Ok(())
     // }
+
+    fn loop_over<T>(
+        &mut self,
+        cont_cond: impl Fn(&mut Self) -> PR<'src, bool>,
+        check_start: bool,
+        args: &mut T,
+        foo: impl Fn(&mut Self, &mut T) -> PR<'src, ()>
+    ) -> PR<'src, ()> {
+        // while cont_cond(self)? {
+        //     foo(self, args)?;
+        // }
+
+        if check_start || cont_cond(self)? {
+            loop {
+                foo(self, args)?;
+                if !cont_cond(self)? {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'src> Parser<'src> {
@@ -157,7 +179,23 @@ impl<'src> Parser<'src> {
     }
 
     fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
-        todo!()
+        let mut stmts = Vec::new();
+        let mut expr = None;
+
+        self.loop_over(
+            |me| Ok(!me.expect_tokens_consume(Token::RBRACE, &[])?),
+            true,
+            &mut (&mut stmts, &mut expr),
+            |me, (stmts, expr)| {
+                match me.build_stmt_or_expr(Some(Token::RBRACE))? {
+                    Ok(stmt) => stmts.push(stmt),
+                    Err(exp) => { expr.replace(Box::new(exp)); }
+                }
+                Ok(())
+            }
+        )?;
+
+        Ok(CodeBlock(stmts, expr))
     }
 
     fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
