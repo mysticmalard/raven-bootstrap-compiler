@@ -237,7 +237,12 @@ impl<'src> Parser<'src> {
     }
 
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
-        let mut expr = Box::new(self.build_expr_leaf()?);
+        let mut expr = Box::new(match self.expect_tokens_or_else(PREFIXES)? {
+            Some(prefix) => Expr::Prefix(prefix, Box::new(self.build_expr(closers)?)),
+            None => self.build_expr_leaf()?,
+            _ => unreachable!()
+        });
+
         self.loop_over(
             |me| Ok(!me.check_for_tokens(closers)?),
             true,

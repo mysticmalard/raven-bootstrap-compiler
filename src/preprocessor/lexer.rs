@@ -36,6 +36,8 @@ define_tokens! {
     BRACE["{", "}"],
     ANGLE["<", ">"],
 
+    AMP => "&",
+
     Char(r"'(\\)?.'"),
     Lifetime(r"'[a-zA-Z_][a-zA-Z_0-9]*\s"),
     Number(r"[0-9]+"),
@@ -68,7 +70,7 @@ pub const ACCESSORS: &'static [Token] = &[
 ];
 
 pub const PREFIXES: &'static [Token] = &[
-
+    Token::AMP, Token::MUT
 ];
 
 pub const INFIXES: &'static [Token] = &[
@@ -110,7 +112,7 @@ pub struct Lexer<'src> {
 
 impl<'src> Lexer<'src> {
     pub fn new(src: &'src str) -> Self {
-        Self { tokens: put_back_n(Token::lexer(src) ), index: 0 }
+        Self { tokens: put_back_n(Token::lexer(src) ), index: usize::MAX }
     }
 }
 
@@ -124,7 +126,7 @@ impl<'src> Lexer<'src> {
 
     pub fn forgive(&mut self, token: Token<'src>) {
         self.tokens.put_back(Ok(token));
-        self.index -= 1;
+        self.index = self.index.overflowing_sub(1).0;
     }
 
     pub fn peek(&mut self) -> Option<Token<'src>> {
@@ -134,7 +136,7 @@ impl<'src> Lexer<'src> {
     }
 
     pub fn get_index(&self) -> usize {
-        self.index - 1
+        self.index
     }
 }
 
@@ -143,7 +145,10 @@ impl<'src> Iterator for Lexer<'src> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.next() {
-            Some(Ok(token)) => { self.index += 1; Some(token) },
+            Some(Ok(token)) => {
+                self.index = self.index.overflowing_add(1).0;
+                Some(token)
+            },
             Some(Err(())) | None => None
         }
     }
