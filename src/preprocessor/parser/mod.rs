@@ -174,12 +174,18 @@ impl<'src> Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    fn build_call_args(&mut self, closer: Token<'src>) -> PR<'src, Vec<Expr<'src>>> {
+        todo!()
+    }
+
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
         Ok(Expr::Atom(self.next_token()?))
     }
 
     fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
-        todo!()
+        Ok(match self.expect_tokens(OPEN_BRACKETS)? {
+            bracket => Expr::FnCall(expr, bracket, self.build_call_args(bracket.get_closer().unwrap())?)
+        })
     }
 
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
