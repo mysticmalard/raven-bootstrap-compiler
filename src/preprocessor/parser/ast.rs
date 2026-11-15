@@ -19,7 +19,7 @@ pub enum Expr<'src> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Param<'src>(pub Token<'src>, pub Expr<'src>);
+pub struct Param<'src>(pub Expr<'src>, pub Option<Expr<'src>>);
 
 #[derive(Debug, Clone)]
 pub struct CodeBlock<'src>(pub Vec<Stmt<'src>>, pub Option<Box<Expr<'src>>>);

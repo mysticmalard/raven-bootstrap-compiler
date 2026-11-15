@@ -301,7 +301,13 @@ impl<'src> Parser<'src> {
     }
 
     fn build_param(&mut self, closer: Token<'src>) -> PR<'src, Param<'src>> {
-        Ok(Param(self.expect_ident()?, { self.expect_token(Token::COLON)?; self.build_expr(&[Token::COMMA, closer])?}))
+        let binding = self.build_expr(&[Token::COMMA, Token::COLON, closer])?;
+
+        let dtype = self.expect_tokens_consume(Token::COLON, &[Token::COMMA, closer])?
+            .then(|| self.build_expr(&[Token::COMMA, closer]))
+            .transpose()?;
+
+        Ok(Param(binding, dtype))
     }
 
     fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
