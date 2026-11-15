@@ -1,4 +1,4 @@
-use crate::preprocessor::lexer::{ACCESS_MODIFIERS, ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
+use crate::preprocessor::lexer::{ACCESS_MODIFIERS, ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, CTRL_FLOW_LONE, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
 
 pub mod ast;
 use ast::*;
@@ -213,6 +213,33 @@ impl<'src> Parser<'src> {
         })
     }
 
+    fn build_phrase(&mut self, kwd: Token<'src>) -> PR<'src, Phrase<'src>> {
+        Ok(match kwd {
+            kwd if CTRL_FLOW_GEN.contains(&kwd) => {
+                Phrase::Generic(kwd, Box::new(self.build_expr(&[Token::LBRACE])?))
+            }
+            _ => unreachable!()
+        })
+    }
+
+    fn build_clause(&mut self, kwd: Token<'src>) -> PR<'src, Phrase<'src>> {
+        let generic = self.build_phrase(kwd)?;
+        self.expect_token(Token::LBRACE)?;
+        let block = Phrase::Block(Box::new(generic), self.build_code_block()?);
+
+        
+        Ok(if self.peek_token().is_ok() && let Some(lone) = self.expect_tokens_or_else(CTRL_FLOW_LONE)? {
+            Phrase::Chain(Box::new(block), Box::new(if self.expect_tokens_consume(Token::LBRACE, CTRL_FLOW_GEN)? {
+                Phrase::Block(Box::new(Phrase::Lone(lone, None)), self.build_code_block()?)
+            } else {
+                let kwd = self.next_token()?;
+                Phrase::Lone(lone, Some(Box::new(self.build_clause(kwd)?)))
+            }))
+        } else {
+            block
+        })
+    }
+
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
         Ok(match self.expect_atoms_or_else(OPEN_BRACKETS)? {
             Some(atom @
@@ -348,7 +375,7 @@ impl<'src> Parser<'src> {
         };
 
         let stmt_or_expr = match self.expect_tokens_or_else(CTRL_FLOW_GEN)? {
-            Some(kwd) if CTRL_FLOW_GEN.contains(&kwd) => todo!(),
+            Some(kwd) if CTRL_FLOW_GEN.contains(&kwd) => Ok(Stmt::Expr(Expr::Phrase(self.build_clause(kwd)?))),
             None => {
                 let expr = self.build_expr(closers)?;
                 if self.expect_tokens_consume(Token::SEMI, &[])? {

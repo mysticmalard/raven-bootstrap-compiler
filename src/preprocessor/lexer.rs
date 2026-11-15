@@ -68,6 +68,10 @@ pub const CTRL_FLOW_KWDS: &'static [Token] = &[
     Token::USE, Token::LET
 ];
 
+pub const CTRL_FLOW_LONE: &'static [Token] = &[
+    Token::ELSE
+];
+
 pub const ACCESSORS: &'static [Token] = &[
     Token::DOT, Token::RARW, Token::MARW, Token::DCOLON
 ];

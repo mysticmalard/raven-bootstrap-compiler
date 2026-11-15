@@ -1,6 +1,14 @@
 use crate::preprocessor::lexer::Token;
 
 #[derive(Debug, Clone)]
+pub enum Phrase<'src> {
+    Generic(Token<'src>, Box<Expr<'src>>),
+    Block(Box<Self>, CodeBlock<'src>),
+    Lone(Token<'src>, Option<Box<Self>>),
+    Chain(Box<Self>, Box<Self>),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr<'src> {
     Atom(Token<'src>),
     Access{
@@ -16,6 +24,7 @@ pub enum Expr<'src> {
     List(Token<'src>, Vec<Self>),
     CodeBlock(CodeBlock<'src>),
     FnCall(Box<Self>, Token<'src>, Vec<Self>),
+    Phrase(Phrase<'src>)
 }
 
 #[derive(Debug, Clone)]
