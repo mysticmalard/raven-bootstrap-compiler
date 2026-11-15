@@ -1,1 +1,9 @@
 f(x);
+
+add(a, b);
+
+multiply(
+    x,
+    y,
+    z,
+);
