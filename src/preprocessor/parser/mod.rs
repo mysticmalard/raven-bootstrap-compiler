@@ -97,7 +97,7 @@ impl<'src> Parser<'src> {
             .map_or_else(
                 || {
                     let token = self.peek_token()?;
-                    if acceptable.contains(&token) {
+                    if acceptable.contains(&token) || acceptable.is_empty() {
                         Ok(false)
                     } else {
                         Err(self.expected_tokens_error(&[&[expectation], acceptable].concat(), token))
@@ -119,216 +119,96 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_list(
+    // fn parse_list(
+    //     &mut self,
+    //     delimiter: Option<Token<'src>>,
+    //     closer: Token<'src>,
+    //     mut foo: impl FnMut(&mut Self) -> PR<'src, ()>
+    // ) -> PR<'src, ()> {
+    //     let cont_cond = delimiter.map_or_else(
+    //         || Box::new(
+    //             |me: &mut Self| me.expect_tokens_consume(closer, &[]))
+    //                 as Box<dyn Fn(&mut Self) -> PR<'src, bool>>,
+    //         |token: Token<'src>| {
+    //             Box::new(
+    //                 move |me: &mut Self| me.continue_list(token, closer)
+    //             ) as Box<dyn Fn(&mut Self) -> PR<'src, bool>>
+    //         }
+    //     );
+
+    //     // if !self.expect_tokens_consume(closer, &[])? {
+    //     if !self.check_for_tokens(&[closer])? {
+    //         loop {
+    //             foo(self)?;
+
+    //             if !cont_cond(self)? {
+    //                 break;
+    //             }
+    //         }
+    //     }
+    //     self.expect_token(closer)?;
+    //     Ok(())
+    // }
+
+    fn loop_over<T>(
         &mut self,
-        delimiter: Option<Token<'src>>,
-        closer: Token<'src>,
-        mut foo: impl FnMut(&mut Self) -> PR<'src, ()>
+        cont_cond: impl Fn(&mut Self) -> PR<'src, bool>,
+        check_start: bool,
+        args: &mut T,
+        foo: impl Fn(&mut Self, &mut T) -> PR<'src, ()>
     ) -> PR<'src, ()> {
-        let cont_cond = delimiter.map_or_else(
-            || Box::new(
-                |me: &mut Self| me.expect_tokens_consume(closer, &[]))
-                    as Box<dyn Fn(&mut Self) -> PR<'src, bool>>,
-            |token: Token<'src>| {
-                Box::new(
-                    move |me: &mut Self| me.continue_list(token, closer)
-                ) as Box<dyn Fn(&mut Self) -> PR<'src, bool>>
-            }
-        );
+        // while cont_cond(self)? {
+        //     foo(self, args)?;
+        // }
 
-        // if !self.expect_tokens_consume(closer, &[])? {
-        if !self.check_for_tokens(&[closer])? {
+        if check_start || cont_cond(self)? {
             loop {
-                foo(self)?;
-
+                foo(self, args)?;
                 if !cont_cond(self)? {
                     break;
                 }
             }
         }
-        self.expect_token(closer)?;
         Ok(())
     }
-
-    fn build_list<T>(
-        &mut self,
-        delimiter: Token<'src>,
-        closer: Token<'src>,
-        list: &mut Vec<T>,
-        bar: impl Fn(&mut Self) -> PR<'src, T>
-    ) -> PR<'src, ()> {
-        self.parse_list(
-            Some(delimiter),
-            closer,
-            |me| Ok(list.push(bar(me)?))
-        )
-    }
-
-    fn loop_over<T>(
-        &mut self,
-        closers: &[Token<'src>],
-        accumulator: &mut T,
-        mut foo: impl FnMut(&mut Self, &mut T) -> PR<'src, ()>
-    ) -> PR<'src, ()> {
-        if !self.check_for_tokens(closers)? {
-            loop {
-                foo(self, accumulator)?;
-                if self.check_for_tokens(closers)? {
-                    break;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    // fn loop_build<T>(
-    //     &mut self,
-    //     closers: &[Token<'src>],
-    //     list: &mut T,
-    //     baz: impl Fn(&mut Self, &mut T) -> PR<'src, T>
-    // ) -> PR<'src, ()> {
-
-    // }
 }
 
 impl<'src> Parser<'src> {
-    fn build_call_args(&mut self, closer: Token<'src>) -> PR<'src, Vec<Expr<'src>>> {
-        let mut args = Vec::new();
-
-        self.build_list(
-            Token::COMMA,
-            closer,
-            &mut args,
-            |me| me.build_expr(&[Token::COMMA, closer])
-        )?;
-
-        Ok(args)
-    }
-
-    // TODO: Fix
-    fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
-        Ok(match self.next_token()? {
-            token if OPEN_BRACKETS.contains(&token) => {
-                let closer = token.get_closer().unwrap();
-                let expr = self.build_expr(&[Token::COMMA, closer])?;
-                if self.check_for_tokens(&[Token::COMMA])? {
-                    let mut exprs = Vec::from([expr]);
-                    while self.continue_list(Token::COMMA, closer)? {
-                        exprs.push(self.build_expr(&[Token::COMMA, closer])?);
-                    }
-                    Expr::List(token, exprs)
-                } else {
-                    self.expect_token(closer)?;
-                    Expr::Group(token, Box::new(expr))
-                }
-            },
-            Token::FOR => todo!(),
-            Token::MATCH => todo!(),
-            token if CTRL_FLOW_GEN.contains(&token) => todo!(),
-            // token if CTRL_FLOW_GEN.contains(&token) => Expr::Phrase(Box::new(self.build_clause(Some(token))?)),
-            token @
-            ( Token::Ident(_)
-            | Token::Char(_)
-            | Token::Literal(_)
-            | Token::Number(_) ) => Expr::Atom(token),
-            _ => todo!()
-        })
-    }
-
-
-    // TODO: rewrite (maybe)
-    fn append_postfix(&mut self, expr: Box<Expr<'src>>) -> PR<'src, Expr<'src>> {
-        // let exp = match self.next_token()? {
-        let exp = match self.expect_tokens(&[ACCESSORS, POSTFIXES, INFIXES, OPEN_BRACKETS].concat())? {
-            token if ACCESSORS.contains(&token) => {
-                Expr::Access(expr, token, self.expect_ident()?)
-            },
-            token if OPEN_BRACKETS.contains(&token) => {
-                Expr::FnCall(expr, token, self.build_call_args(token.get_closer().unwrap())?)
-            },
-            token if POSTFIXES.contains(&token) || INFIXES.contains(&token) => {
-                Expr::Postfix(expr, token)
-            }
-            _ => unreachable!()
-        };
-
-        Ok(exp)
-    }
-
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
-        let mut expr = match self.expect_tokens_or_else(PREFIXES)? {
-            Some(prefix) if PREFIXES.contains(&prefix) => Expr::Prefix(prefix, Box::new(self.build_expr(closers)?)),
-            None => self.build_expr_leaf()?,
-            _ => unreachable!()
-        };
-
-        self.loop_over(
-            closers,
-            &mut expr,
-            |me, expr| {
-                // let temp = Expr::Atom(Token::SEMI);
-                // * Dummy value
-                *expr = match core::mem::replace(expr, Expr::Atom(Token::SEMI)) {
-                // ? help
-                // *expr = match expr {
-                    Expr::Postfix(exp, t) if INFIXES.contains(&t) => {
-                        Expr::Binary(exp, t, Box::new(me.build_expr(closers)?))
-                    },
-                    exp @ Expr::Group(_, _) => {
-                        Expr::PrefixCall(Box::new(exp), Box::new(me.build_expr(closers)?))
-                    },
-                    exp => me.append_postfix(Box::new(exp))?
-                };
-                Ok(())
-            }
-        )?;
-
-        Ok(expr)
-    }
-
-    fn build_param(&mut self) -> PR<'src, Param<'src>> {
-        // todo!()
-        let name = self.next_token()?;
-        Ok(Param(name, Expr::Atom(Token::SEMI)))
-    }
-
-    fn build_params(&mut self) -> PR<'src, Vec<Param<'src>>> {
-        let mut params = Vec::new();
-
-        self.build_list(
-            Token::COMMA,
-            Token::RPAREN,
-            &mut params,
-            |me| me.build_param()
-        )?;
-
-        Ok(params)
+        Ok(Expr::Atom(self.next_token()?))
     }
 
     fn build_code_block(&mut self) -> PR<'src, CodeBlock<'src>> {
         let mut stmts = Vec::new();
         let mut expr = None;
 
-        self.parse_list(
-            None,
-            Token::RBRACE,
-            |me| {
+        self.loop_over(
+            |me| Ok(!me.expect_tokens_consume(Token::RBRACE, &[])?),
+            true,
+            &mut (&mut stmts, &mut expr),
+            |me, (stmts, expr)| {
                 match me.build_stmt_or_expr(Some(Token::RBRACE))? {
                     Ok(stmt) => stmts.push(stmt),
-                    Err(exp) => { expr = Some(Box::new(exp)); }
+                    Err(exp) => { expr.replace(Box::new(exp)); }
                 }
                 Ok(())
             }
         )?;
 
-        Ok( CodeBlock(stmts, expr) )
+        Ok(CodeBlock(stmts, expr))
+    }
+
+    fn build_params(&mut self, closer: Token<'src>) -> PR<'src, Vec<Param<'src>>> {
+        // TODO
+        self.expect_token(closer)?;
+        Ok(Vec::new())
     }
 
     fn build_fn_decl(&mut self, ftype: Token<'src>) -> PR<'src, Stmt<'src>> {
         let name = self.expect_ident()?;
 
         self.expect_token(Token::LPAREN)?;
-        let params = self.build_params()?;
+        let params = self.build_params(Token::RPAREN)?;
 
         let body = self.expect_tokens_consume(Token::LBRACE, &[Token::SEMI])?
             .then(|| self.build_code_block())
@@ -345,13 +225,7 @@ impl<'src> Parser<'src> {
         };
 
         let stmt_or_expr = match self.expect_tokens_or_else(CTRL_FLOW_GEN)? {
-            // Some(flow) if CTRL_FLOW_GEN.contains(&flow) => Ok(Stmt::Expr(Expr::Phrase(Box::new(self.build_clause(closers)?)))),
             Some(kwd) if CTRL_FLOW_GEN.contains(&kwd) => todo!(),
-            // Some(kwd) if CTRL_FLOW_KWDS.contains(&kwd) => {
-            //     let stmt = Stmt::Ctrl(kwd, self.build_expr(&[Token::SEMI])?);
-            //     self.expect_token(Token::SEMI)?;
-            //     Ok(stmt)
-            // },
             None => {
                 let expr = self.build_expr(closers)?;
                 if self.expect_tokens_consume(Token::SEMI, &[])? {
