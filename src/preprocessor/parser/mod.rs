@@ -113,42 +113,11 @@ impl<'src> Parser<'src> {
 
     fn continue_list(&mut self, delimiter: Token<'src>, closer: Token<'src>) -> PR<'src, bool> {
         match self.next_token()? {
-            token if token == delimiter => Ok(!self.expect_tokens_consume(closer, &[])?),
+            token if token == delimiter => Ok(true),
             token if token == closer => Ok(false),
             token => Err(self.expected_tokens_error(&[delimiter, closer], token))
         }
     }
-
-    // fn parse_list(
-    //     &mut self,
-    //     delimiter: Option<Token<'src>>,
-    //     closer: Token<'src>,
-    //     mut foo: impl FnMut(&mut Self) -> PR<'src, ()>
-    // ) -> PR<'src, ()> {
-    //     let cont_cond = delimiter.map_or_else(
-    //         || Box::new(
-    //             |me: &mut Self| me.expect_tokens_consume(closer, &[]))
-    //                 as Box<dyn Fn(&mut Self) -> PR<'src, bool>>,
-    //         |token: Token<'src>| {
-    //             Box::new(
-    //                 move |me: &mut Self| me.continue_list(token, closer)
-    //             ) as Box<dyn Fn(&mut Self) -> PR<'src, bool>>
-    //         }
-    //     );
-
-    //     // if !self.expect_tokens_consume(closer, &[])? {
-    //     if !self.check_for_tokens(&[closer])? {
-    //         loop {
-    //             foo(self)?;
-
-    //             if !cont_cond(self)? {
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //     self.expect_token(closer)?;
-    //     Ok(())
-    // }
 
     fn loop_over<T>(
         &mut self,
@@ -175,7 +144,17 @@ impl<'src> Parser<'src> {
 
 impl<'src> Parser<'src> {
     fn build_call_args(&mut self, closer: Token<'src>) -> PR<'src, Vec<Expr<'src>>> {
-        todo!()
+        let mut args = Vec::new();
+        self.loop_over(
+            |me| me.continue_list(Token::COMMA, closer),
+            false,
+            &mut args,
+            |me, args| {
+                args.push(me.build_expr(&[Token::COMMA, closer])?);
+                Ok(())
+            }
+        )?;
+        Ok(args)
     }
 
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
@@ -190,7 +169,6 @@ impl<'src> Parser<'src> {
 
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
         let mut expr = Box::new(self.build_expr_leaf()?);
-
         self.loop_over(
             |me| Ok(!me.check_for_tokens(closers)?),
             true,
