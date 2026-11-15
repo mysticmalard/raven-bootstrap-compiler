@@ -130,7 +130,7 @@ impl<'src> Parser<'src> {
         //     foo(self, args)?;
         // }
 
-        if check_start || cont_cond(self)? {
+        if check_start.then(|| cont_cond(self)).transpose()?.unwrap_or(true) {
             loop {
                 foo(self, args)?;
                 if !cont_cond(self)? {
@@ -145,15 +145,20 @@ impl<'src> Parser<'src> {
 impl<'src> Parser<'src> {
     fn build_call_args(&mut self, closer: Token<'src>) -> PR<'src, Vec<Expr<'src>>> {
         let mut args = Vec::new();
-        self.loop_over(
-            |me| me.continue_list(Token::COMMA, closer),
-            false,
-            &mut args,
-            |me, args| {
-                args.push(me.build_expr(&[Token::COMMA, closer])?);
-                Ok(())
-            }
-        )?;
+        if !self.expect_tokens_consume(closer, &[])? {
+            self.loop_over(
+                |me| me.continue_list(Token::COMMA, closer),
+                false,
+                &mut args,
+                |me, args| {
+                    // let expr = me.build_expr(&[Token::COMMA, closer])?;
+                    // dbg!(&expr);
+                    // args.push(expr);
+                    args.push(me.build_expr(&[Token::COMMA, closer])?);
+                    Ok(())
+                }
+            )?;
+        }
         Ok(args)
     }
 
