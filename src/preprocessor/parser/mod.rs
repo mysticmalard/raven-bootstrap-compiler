@@ -268,6 +268,10 @@ impl<'src> Parser<'src> {
             }
         )?;
 
+        if let Expr::Postfix(_, ref token) = *expr && !POSTFIXES.contains(token) {
+            return Err( self.expected_tokens_error(POSTFIXES, *token))
+        }
+
         Ok(*expr)
     }
 
