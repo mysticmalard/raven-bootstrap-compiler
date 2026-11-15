@@ -2,3 +2,8 @@
 &mut hello;
 
 a &= b & c;
+
+arr.*foo();
+console-mut>log("Goodnight, Moon.");
+
+games->?has_player(player);
