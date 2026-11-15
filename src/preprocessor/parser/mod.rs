@@ -113,7 +113,7 @@ impl<'src> Parser<'src> {
 
     fn continue_list(&mut self, delimiter: Token<'src>, closer: Token<'src>) -> PR<'src, bool> {
         match self.next_token()? {
-            token if token == delimiter => Ok(true),
+            token if token == delimiter => Ok(!self.expect_tokens_consume(closer, &[])?),
             token if token == closer => Ok(false),
             token => Err(self.expected_tokens_error(&[delimiter, closer], token))
         }
