@@ -13,7 +13,7 @@ pub enum Phrase<'src> {
 #[derive(Debug, Clone)]
 pub enum Expr<'src> {
     Atom(Token<'src>),
-    Access{
+    Access {
         expr: Box<Self>,
         accessor: Token<'src>,
         modifier: Option<Token<'src>>,
@@ -28,11 +28,16 @@ pub enum Expr<'src> {
     FnCall(Box<Self>, Token<'src>, Vec<Self>),
     Phrase(Phrase<'src>),
     Ctrl(Token<'src>),
-    Arm{
+    Arm {
         binding: Box<Self>,
         pattern: Option<Box<Self>>,
         condition: Option<Box<Self>>,
         expr: Box<Self>
+    },
+    VarDecl {
+        binding: Box<Self>,
+        dtype: Option<Box<Self>>,
+        expr: Option<Box<Self>>
     }
 }
 

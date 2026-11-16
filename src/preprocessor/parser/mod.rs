@@ -332,8 +332,30 @@ impl<'src> Parser<'src> {
         })
     }
 
+    fn build_var_decl(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
+        let binding = Box::new(self.build_expr(
+            &[&[Token::ASSIGN, Token::COLON], closers].concat()
+        )?);
+
+        let dtype = self.expect_tokens_consume(
+            Token::COLON,
+            &[&[Token::ASSIGN], closers].concat()
+        )?.then(|| self.build_expr(
+            &[&[Token::ASSIGN], closers].concat()
+        )).transpose()?
+        .map(|expr| Box::new(expr));
+
+        let expr = self.expect_tokens_consume(Token::ASSIGN, closers)?
+            .then(|| self.build_expr(closers))
+            .transpose()?
+            .map(|expr| Box::new(expr));
+
+        Ok(Expr::VarDecl { binding, dtype, expr })
+    }
+
     fn build_expr(&mut self, closers: &[Token<'src>]) -> PR<'src, Expr<'src>> {
         let mut expr = Box::new(match self.expect_tokens_or_else(PREFIXES)? {
+            Some(Token::LET) => self.build_var_decl(closers)?,
             Some(prefix) => Expr::Prefix(prefix, Box::new(self.build_expr(closers)?)),
             None => self.build_expr_leaf()?,
             // _ => unreachable!()

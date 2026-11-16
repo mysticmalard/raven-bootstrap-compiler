@@ -69,8 +69,6 @@ pub const CTRL_FLOW_KWDS: &'static [Token] = &[
     Token::CONTINUE, Token::RETRY,
     Token::YIELD, Token::RETURN,
     Token::BREAK,
-
-    Token::USE, Token::LET
 ];
 
 pub const CTRL_FLOW_LONE: &'static [Token] = &[
@@ -83,7 +81,8 @@ pub const ACCESSORS: &'static [Token] = &[
 ];
 
 pub const PREFIXES: &'static [Token] = &[
-    Token::AMP, Token::MUT
+    Token::AMP, Token::MUT,
+    Token::LET, Token::USE, Token::IMPORT,
 ];
 
 pub const INFIXES: &'static [Token] = &[
