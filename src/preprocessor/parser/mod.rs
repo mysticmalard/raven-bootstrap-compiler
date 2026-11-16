@@ -477,7 +477,8 @@ impl<'src> Parser<'src> {
 
     fn build_stmt(&mut self) -> PR<'src, Stmt<'src>> {
         match self.expect_tokens_or_else(&[
-            Token::API, Token::FN, Token::MACRO, Token::SHADER
+            Token::API, Token::FN, Token::MACRO, Token::SHADER,
+            Token::IMPORT
         ])? {
             Some(ftype @
                 ( Token::API
@@ -485,6 +486,7 @@ impl<'src> Parser<'src> {
                 | Token::MACRO
                 | Token::SHADER )
             ) => self.build_fn_decl(ftype),
+            Some(Token::IMPORT) => Ok(Stmt::Import(self.build_call_args(Token::SEMI)?)),
             None => self.build_root_stmt(),
             _ => unreachable!()
         }

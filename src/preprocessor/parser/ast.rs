@@ -50,6 +50,7 @@ pub struct CodeBlock<'src>(pub Vec<Stmt<'src>>, pub Option<Box<Expr<'src>>>);
 #[derive(Debug, Clone)]
 pub enum Stmt<'src> {
     Expr(Expr<'src>),
+    Import(Vec<Expr<'src>>),
     FnDef {
         ftype: Token<'src>,
         name: Token<'src>,
