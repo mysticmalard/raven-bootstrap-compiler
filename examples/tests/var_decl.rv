@@ -9,3 +9,7 @@ let bounty = if crime.successful() {
 } else {
     None
 };
+
+let y: u8 = x;
+let z;
+let w: u8;
