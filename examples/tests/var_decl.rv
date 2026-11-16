@@ -13,3 +13,9 @@ let bounty = if crime.successful() {
 let y: u8 = x;
 let z;
 let w: u8;
+
+if let Some(foo) = bar() {
+    print(foo);
+} else {
+    print("nuthin");
+}
