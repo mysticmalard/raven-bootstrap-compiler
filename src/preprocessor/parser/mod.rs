@@ -271,20 +271,25 @@ impl<'src> Parser<'src> {
     }
 
     fn build_clause(&mut self, kwd: Token<'src>) -> PR<'src, Phrase<'src>> {
-        let generic = self.build_phrase(kwd)?;
-        self.expect_token(Token::LBRACE)?;
-        let mut block = Phrase::Block(Box::new(generic), self.build_code_block()?);
+        match kwd {
+            Token::MATCH => self.build_phrase(Token::MATCH),
+            kwd => {
+                let generic = self.build_phrase(kwd)?;
+                self.expect_token(Token::LBRACE)?;
+                let mut block = Phrase::Block(Box::new(generic), self.build_code_block()?);
 
-        loop {
-            block = if self.peek_token().is_ok() && let Some(lone) = self.expect_tokens_or_else(CTRL_FLOW_LONE)? {
-                Phrase::Chain(Box::new(block), Box::new(if self.expect_tokens_consume(Token::LBRACE, CTRL_FLOW_GEN)? {
-                    Phrase::Block(Box::new(Phrase::Lone(lone, None)), self.build_code_block()?)
-                } else {
-                    let kwd = self.next_token()?;
-                    Phrase::Lone(lone, Some(Box::new(self.build_clause(kwd)?)))
-                }))
-            } else {
-                break Ok(block);
+                loop {
+                    block = if self.peek_token().is_ok() && let Some(lone) = self.expect_tokens_or_else(CTRL_FLOW_LONE)? {
+                        Phrase::Chain(Box::new(block), Box::new(if self.expect_tokens_consume(Token::LBRACE, CTRL_FLOW_GEN)? {
+                            Phrase::Block(Box::new(Phrase::Lone(lone, None)), self.build_code_block()?)
+                        } else {
+                            let kwd = self.next_token()?;
+                            Phrase::Lone(lone, Some(Box::new(self.build_clause(kwd)?)))
+                        }))
+                    } else {
+                        break Ok(block);
+                    }
+                }
             }
         }
     }
