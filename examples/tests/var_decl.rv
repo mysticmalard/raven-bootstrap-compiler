@@ -1,0 +1,11 @@
+use std::argparse;
+
+let message = "hello";
+
+let x = 7;
+
+let bounty = if crime.successful() {
+    Some(crime.reward)
+} else {
+    None
+};
