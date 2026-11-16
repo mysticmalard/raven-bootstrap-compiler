@@ -2,6 +2,8 @@ use crate::preprocessor::lexer::Token;
 
 #[derive(Debug, Clone)]
 pub enum Phrase<'src> {
+    For(Box<Expr<'src>>, Box<Expr<'src>>),
+    Match(Box<Expr<'src>>, Vec<Expr<'src>>),
     Generic(Token<'src>, Box<Expr<'src>>),
     Block(Box<Self>, CodeBlock<'src>),
     Lone(Token<'src>, Option<Box<Self>>),
@@ -24,7 +26,14 @@ pub enum Expr<'src> {
     List(Token<'src>, Vec<Self>),
     CodeBlock(CodeBlock<'src>),
     FnCall(Box<Self>, Token<'src>, Vec<Self>),
-    Phrase(Phrase<'src>)
+    Phrase(Phrase<'src>),
+    Ctrl(Token<'src>),
+    Arm{
+        binding: Box<Self>,
+        pattern: Option<Box<Self>>,
+        condition: Option<Box<Self>>,
+        expr: Box<Self>
+    }
 }
 
 #[derive(Debug, Clone)]

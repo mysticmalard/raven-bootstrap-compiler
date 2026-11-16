@@ -5,3 +5,26 @@ if condition {
 } else {
     error_path();
 }
+
+bounty = if crime.commited() {
+    Some(crime.reward)
+} else {
+    None
+};
+
+for crime in crimes {
+    if crime.commited() {
+        print("Crime commited");
+    } else {
+        break;
+    }
+} finally {
+    print("that's all the crimes");
+} else {
+    other_stuff();
+}
+
+match foo {
+    bar => baz,
+    fizz => buzz
+}

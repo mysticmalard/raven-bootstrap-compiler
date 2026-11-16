@@ -1,4 +1,4 @@
-use crate::preprocessor::lexer::{ACCESS_MODIFIERS, ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, CTRL_FLOW_LONE, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
+use crate::preprocessor::lexer::{ACCESS_MODIFIERS, ACCESSORS, CLOSE_BRACKETS, CTRL_FLOW_GEN, CTRL_FLOW_KWDS, CTRL_FLOW_LONE, INFIXES, Lexer, OPEN_BRACKETS, POSTFIXES, PREFIXES, Token};
 
 pub mod ast;
 use ast::*;
@@ -213,8 +213,56 @@ impl<'src> Parser<'src> {
         })
     }
 
+    fn build_match_arm(&mut self) -> PR<'src, Expr<'src>> {
+        let binding = Box::new(self.build_expr(&[Token::AT, Token::IF, Token::BARW])?);
+
+        let pattern = self.expect_tokens_consume(Token::AT, &[Token::IF, Token::BARW])?
+            .then(|| self.build_expr(&[Token::IF, Token::BARW]))
+            .transpose()?
+            .map(|expr| Box::new(expr));
+
+        let condition = self.expect_tokens_consume(Token::IF, &[Token::BARW])?
+            .then(|| self.build_expr(&[Token::BARW]))
+            .transpose()?
+            .map(|expr| Box::new(expr));
+
+        self.expect_token(Token::BARW)?;
+        let expr = Box::new(self.build_expr(&[Token::COMMA, Token::RBRACE])?);
+
+        Ok(Expr::Arm { binding, pattern, condition, expr })
+    }
+
+    fn build_match_arms(&mut self) -> PR<'src, Vec<Expr<'src>>> {
+        let mut arms = Vec::new();
+
+        self.loop_over(
+            |me| me.continue_list(Token::COMMA, Token::RBRACE),
+            true,
+            &mut arms,
+            |me, arms| {
+                arms.push(me.build_match_arm()?);
+                Ok(())
+            }
+        )?;
+
+        Ok(arms)
+    }
+
     fn build_phrase(&mut self, kwd: Token<'src>) -> PR<'src, Phrase<'src>> {
         Ok(match kwd {
+            Token::FOR => {
+                let binding = self.build_expr(&[Token::IN])?;
+                self.expect_token(Token::IN)?;
+                let expr = self.build_expr(&[Token::LBRACE])?;
+                Phrase::For(Box::new(binding), Box::new(expr))
+            },
+            Token::MATCH => {
+                let expr = self.build_expr(&[Token::LBRACE])?;
+                self.expect_token(Token::LBRACE)?;
+                // TODO
+                let arms = self.build_match_arms()?;
+                Phrase::Match(Box::new(expr), arms)
+            }
             kwd if CTRL_FLOW_GEN.contains(&kwd) => {
                 Phrase::Generic(kwd, Box::new(self.build_expr(&[Token::LBRACE])?))
             }
@@ -225,23 +273,24 @@ impl<'src> Parser<'src> {
     fn build_clause(&mut self, kwd: Token<'src>) -> PR<'src, Phrase<'src>> {
         let generic = self.build_phrase(kwd)?;
         self.expect_token(Token::LBRACE)?;
-        let block = Phrase::Block(Box::new(generic), self.build_code_block()?);
+        let mut block = Phrase::Block(Box::new(generic), self.build_code_block()?);
 
-        
-        Ok(if self.peek_token().is_ok() && let Some(lone) = self.expect_tokens_or_else(CTRL_FLOW_LONE)? {
-            Phrase::Chain(Box::new(block), Box::new(if self.expect_tokens_consume(Token::LBRACE, CTRL_FLOW_GEN)? {
-                Phrase::Block(Box::new(Phrase::Lone(lone, None)), self.build_code_block()?)
+        loop {
+            block = if self.peek_token().is_ok() && let Some(lone) = self.expect_tokens_or_else(CTRL_FLOW_LONE)? {
+                Phrase::Chain(Box::new(block), Box::new(if self.expect_tokens_consume(Token::LBRACE, CTRL_FLOW_GEN)? {
+                    Phrase::Block(Box::new(Phrase::Lone(lone, None)), self.build_code_block()?)
+                } else {
+                    let kwd = self.next_token()?;
+                    Phrase::Lone(lone, Some(Box::new(self.build_clause(kwd)?)))
+                }))
             } else {
-                let kwd = self.next_token()?;
-                Phrase::Lone(lone, Some(Box::new(self.build_clause(kwd)?)))
-            }))
-        } else {
-            block
-        })
+                break Ok(block);
+            }
+        }
     }
 
     fn build_expr_leaf(&mut self) -> PR<'src, Expr<'src>> {
-        Ok(match self.expect_atoms_or_else(OPEN_BRACKETS)? {
+        Ok(match self.expect_atoms_or_else(&[OPEN_BRACKETS, CTRL_FLOW_GEN, CTRL_FLOW_KWDS].concat())? {
             Some(atom @
                 ( Token::Ident(_)
                 | Token::Char(_)
@@ -252,6 +301,8 @@ impl<'src> Parser<'src> {
             },
             Some(Token::LBRACE) => self.build_set()?,
             Some(Token::LPAREN) => self.build_group_or_list()?,
+            Some(kwd) if CTRL_FLOW_GEN.contains(&kwd) => Expr::Phrase(self.build_clause(kwd)?),
+            Some(kwd) if CTRL_FLOW_KWDS.contains(&kwd) => Expr::Ctrl(kwd),
             None => todo!(),
             _ => unreachable!()
         })

@@ -38,8 +38,13 @@ define_tokens! {
 
     HOOK => "?",
 
+    AT -> "@",
+
     AMP => "&",
     STAR => "*",
+
+    ASSIGN -> "=",
+    EQ -> "==",
 
     Char(r"'(\\)?.'"),
     Lifetime(r"'[a-zA-Z_][a-zA-Z_0-9]*\s"),
@@ -69,7 +74,8 @@ pub const CTRL_FLOW_KWDS: &'static [Token] = &[
 ];
 
 pub const CTRL_FLOW_LONE: &'static [Token] = &[
-    Token::ELSE
+    Token::ELSE, Token::DO, Token::DEFER,
+    Token::FINALLY, Token::EXCEPT,
 ];
 
 pub const ACCESSORS: &'static [Token] = &[
@@ -81,7 +87,8 @@ pub const PREFIXES: &'static [Token] = &[
 ];
 
 pub const INFIXES: &'static [Token] = &[
-    Token::AMP, Token::AMPI
+    Token::AMP, Token::AMPI, Token::ASSIGN,
+    Token::BARW
 ];
 
 pub const POSTFIXES: &'static [Token] = &[
