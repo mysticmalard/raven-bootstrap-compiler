@@ -1,0 +1,54 @@
+import argparse;
+use sys::OsArgs;
+
+let parser: ArgParser = argparse::ArgParser::new()
+    .addArgument(width, int, 'w', Self, args=1, default=16)
+    .addArgument(filename, File);
+
+fn dump_line(width: int, bytes_read: int[1..=width], buf: &[bytes_read]u8, index: int) {
+    printf("%.8llx>  ", index);
+    for i in ..width {
+        printf(
+            if i < bytes_read {
+                "%.2x " % buf[i]
+            } else {
+
+            }
+        );
+    }
+    print((&str)buf->map(|c|
+        c.isPrintable()
+        .then_some(c)
+        .unwrap_or_default('.'))
+        .collect());
+}
+
+fn hexdump(file: #File, width: int) {
+    let mut #buf1: [width]u8;
+    let mut #buf2: [width]u8;
+    let mut buf: &mut [width]u8;
+    let mut mux: bool = 0;
+
+    attempt {
+        file>-readToBuf(buf := &mut [buf1, buf2][mux++])
+    } do while buf1 == buf2 {
+        retry;
+    } defer {
+        printf("%.8llx>\t", file->tell() - width);
+    } finally {
+        dump_line(width, that, buf, file->tell());
+    } until that != width;
+}
+
+fn get_file(name: &str) => ?#File {
+    sys::fs::open_file(name).as_box()
+}
+
+api main(args: OsArgs) {
+    parser.parseArgs!();
+    if let Some(file: #File) = get_file(&parser.filename) {
+        hexdump(file, parser.width);
+    } else {
+        sys::exit("File could not be opened", 1);
+    }
+}
